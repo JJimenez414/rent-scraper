@@ -45,7 +45,7 @@ function makeTooltip(categories: ChartCategory[]) {
               <div key={p.dataKey} className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <span className="inline-block size-2 rounded-full" style={{ background: p.color }} />
-                  {cat?.label ?? p.dataKey}
+                  {cat?.label.replace("_"," ") ?? p.dataKey}
                 </span>
                 <span className="font-medium tabular-nums text-foreground">{currency(p.value)}</span>
               </div>
@@ -102,6 +102,7 @@ export function ChargesTrendChart({
           --series-6: #e34948;
           --series-7: #e87ba4;
           --series-8: #eb6834;
+          --series-9: #0e7c86;
         }
         @media (prefers-color-scheme: dark) {
           .viz-root {
@@ -113,6 +114,7 @@ export function ChargesTrendChart({
             --series-6: #e66767;
             --series-7: #d55181;
             --series-8: #d95926;
+            --series-9: #2fa8b3;
           }
         }
       `}</style>
