@@ -5,8 +5,6 @@ export type ChartCategory = { key: string; label: string; colorVar: string }
 export type ChartRow = { month: string } & Record<string, number | string>
 export type MonthEntries = { year: number; month: number; entries: LedgerRow[] }
 
-const OTHER_KEY = '__other__'
-
 export function recentMonths(count: number, from = new Date()): { year: number; month: number }[] {
   const result: { year: number; month: number }[] = []
   let year = from.getFullYear()
@@ -39,31 +37,24 @@ export function buildTrendFromMonths(
   }
 
   const ordered = [...totalsByCategory.entries()].sort((a, b) => b[1] - a[1]).map(([cat]) => cat)
-  const top = ordered.slice(0, 8)
-  const hasOther = ordered.length > top.length
-  const colorMap = assignCategoryColors(top)
+  const colorMap = assignCategoryColors(ordered)
 
   const data: ChartRow[] = months.map((m) => {
     const row: ChartRow = { month: monthLabel(m.year, m.month) }
-    for (const cat of top) row[cat] = 0
-    if (hasOther) row[OTHER_KEY] = 0
+    for (const cat of ordered) row[cat] = 0
 
     for (const e of m.entries) {
       if (e.entry_type !== 'charge') continue
-      const key = top.includes(e.category) ? e.category : OTHER_KEY
-      row[key] = (Number(row[key]) || 0) + Number(e.amount)
+      row[e.category] = (Number(row[e.category]) || 0) + Number(e.amount)
     }
     return row
   })
 
-  const categories: ChartCategory[] = top.map((cat) => ({
+  const categories: ChartCategory[] = ordered.map((cat) => ({
     key: cat,
     label: titleCase(cat),
     colorVar: colorMap.get(cat)!,
   }))
-  if (hasOther) {
-    categories.push({ key: OTHER_KEY, label: 'Other', colorVar: '--muted-foreground' })
-  }
 
   return { data, categories }
 }
