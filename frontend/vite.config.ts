@@ -11,4 +11,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5173,
+    allowedHosts: ["rent.jmzfinance.com", "localhost", "127.0.0.1"],
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8081",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
 })

@@ -10,7 +10,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origin=["http://localhost:5173", "http://rent.jmzfinance.com:5173", "https://rent.jmzfinance.com"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -36,4 +36,4 @@ def get_month_charges(month: int, year: int):
 
 
 if __name__ == "__main__":
-	uvicorn.run(app, host="0.0.0.0", port=8080, access_log=False)
+	uvicorn.run(app, host="0.0.0.0", port=8081, access_log=False)
