@@ -14,7 +14,7 @@ const currency = (v: number) =>
   v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 
 function titleCase(s: string): string {
-  return s.replace(/\b\w/g, (c) => c.toUpperCase())
+  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function formatDate(iso: string) {
