@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { ChartCategory, ChartRow } from '@/lib/trend'
 
 const currency = (v: number) =>
-  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 
 type TooltipPayloadItem = {
   dataKey: string
