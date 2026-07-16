@@ -1,8 +1,9 @@
 import re
 from datetime import datetime
+from util.logger import get_logger
 
 _FEE_RE = re.compile(r"\(\$([\d,]+\.\d+)\s*fee\)", re.IGNORECASE)
-
+logger = get_logger("PARSER")
 
 def parse_row(row: list[str]) -> dict:
     date, charge, payer, amount, balance = row
@@ -38,4 +39,6 @@ def parse_money(amount_raw: str) -> float:
     return -amount_value if negative else amount_value
 
 def parse_ledger(rows: list[list[str]]) -> list[dict]:
+
+    logger.info("Entering logger")
     return [parse_row(row) for row in rows]
