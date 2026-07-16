@@ -32,7 +32,8 @@ function makeTooltip(categories: ChartCategory[]) {
     label?: string
   }) {
     if (!active || !payload?.length) return null
-    const sorted = [...payload].sort((a, b) => b.value - a.value)
+    // const sorted = [...payload].sort((a, b) => b.value - a.value)
+    const sorted = [...payload].filter(c => c.value != 0)
     const total = sorted.reduce((sum, p) => sum + p.value, 0)
 
     return (
