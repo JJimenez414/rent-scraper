@@ -17,13 +17,13 @@ jobs:
 
       - name: Install backend dependencies
         run: |
-          cd /home/jjimenez/Documents/rent-scraper
+          cd /home/jjimenez/Documents/rent-scraper/backend
           source venv/bin/activate
           pip install -r requirements.txt
 
       - name: Install frontend dependencies
         run: |
-          cd /home/jjimenez/Documents/rent-scraper
+          cd /home/jjimenez/Documents/rent-scraper/frontend
           npm install
 
       - name: Restart services
