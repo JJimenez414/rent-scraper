@@ -89,6 +89,25 @@ def db_get_month_charges(year, month):
         logger.info("Exiting db_get_month_charges.")
         return_db_connection(conn)
 
+def db_get_all_charges():
+    logger.info("Entering db_get_all_charges.")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT le.id, le.entry_date, le.entry_type, cc.name AS category,
+                   le.payer, le.amount, le.fee, le.balance
+            FROM ledger_entries le
+            JOIN charge_categories cc ON cc.id = le.category_id
+            ORDER BY le.entry_date DESC;
+            """
+        )
+        return cur.fetchall()
+    finally:
+        logger.info("Exiting db_get_all_charges.")
+        return_db_connection(conn)
+        
 def db_get_last_run():
     conn = get_db_connection()
     try:
