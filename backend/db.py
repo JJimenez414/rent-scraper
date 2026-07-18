@@ -93,9 +93,9 @@ def db_get_last_run():
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM scrape_runs ORDER BY run_at DESC LIMIT 1;")
+        cur.execute("SELECT * FROM scrape_runs ORDER BY ran_at DESC LIMIT 1;")
         run = cur.fetchone()
-        print(run)
+        return (run['ran_at'], run['error_message'])
     finally: 
         return_db_connection(conn)
 

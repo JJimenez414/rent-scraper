@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, Request, HTTPException, status, Depends,
 from fastapi.middleware.cors import CORSMiddleware
 from scraper.scrape import amli_scraper
 from util.scraper_util import parse_ledger
-from db import db_insert_charges, db_get_month_charges, db_insert_run
+from db import db_insert_charges, db_get_month_charges, db_insert_run, db_get_last_run
 from util.logger import get_logger 
 from datetime import datetime
 
@@ -49,6 +49,12 @@ def trigger():
 @app.get("/charges/month")
 def get_month_charges(month: int, year: int):
     return {"entries": db_get_month_charges(year, month)}
+
+# get las run data
+@app.get("/run")
+def get_last_run():
+    timestamp, message = db_get_last_run()
+    return {"status": message, "timestamp": timestamp}
 
 
 

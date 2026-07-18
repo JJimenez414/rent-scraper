@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { ChargesTrendChart } from '@/components/dashboard/charges-trend-chart'
 import { RecentChargesTable } from '@/components/dashboard/recent-charges-table'
-import { getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
+import { getLastRun, getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
 import { buildTrendFromMonths, recentMonths, type ChartCategory, type ChartRow } from '@/lib/trend'
 
 const MONTHS = [
@@ -61,6 +61,26 @@ function App() {
     }
   }, [])
 
+  const loadLastRun = useCallback(async () => {
+    try {
+      const { status, timestamp } = await getLastRun()
+      setTriggerTimestamp(timestamp ? formatLastRun(timestamp) : 'Never run yet')
+      // Backend's /run currently returns the scrape_runs.error_message column
+      // under the "status" key, which holds the success message on success
+      // too (not null) — so an exact match is the only signal available
+      // without a backend change. Fragile: breaks if that message text
+      // ever changes on the backend.
+      setTriggerMessage(
+        status === 'Data Successfully scraped and stored.'
+          ? { kind: 'success', text: 'Last run succeeded' }
+          : { kind: 'error', text: status ?? 'Unknown' },
+      )
+    } catch {
+      // last-run status is a nice-to-have; a failed fetch here shouldn't
+      // block the rest of the dashboard from loading
+    }
+  }, [])
+
   const loadTrend = useCallback(async () => {
     setTrendLoading(true)
     setTrendError(undefined)
@@ -86,6 +106,10 @@ function App() {
   useEffect(() => {
     loadEntries(year, month)
   }, [loadEntries, year, month])
+
+  useEffect(() => {
+    loadLastRun()
+  }, [loadLastRun])
 
   useEffect(() => {
     loadTrend()
