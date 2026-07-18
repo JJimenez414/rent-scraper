@@ -94,6 +94,7 @@ function App() {
   async function handleTrigger() {
     setIsTriggering(true)
     setTriggerMessage(undefined)
+    setTriggerTimestamp("")
     var formattedTimestamp = ""
     try {
       const res = await triggerScrape()
