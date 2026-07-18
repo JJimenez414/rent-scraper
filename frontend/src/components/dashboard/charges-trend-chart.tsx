@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { ChartCategory, ChartRow } from '@/lib/trend'
 
 const currency = (v: number) =>
-  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 
 type TooltipPayloadItem = {
   dataKey: string
@@ -32,7 +32,8 @@ function makeTooltip(categories: ChartCategory[]) {
     label?: string
   }) {
     if (!active || !payload?.length) return null
-    const sorted = [...payload].sort((a, b) => b.value - a.value)
+    // const sorted = [...payload].sort((a, b) => b.value - a.value)
+    const sorted = [...payload].filter(c => c.value != 0)
     const total = sorted.reduce((sum, p) => sum + p.value, 0)
 
     return (
