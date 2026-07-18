@@ -27,3 +27,7 @@ export function triggerScrape() {
 export function getMonthCharges(year: number, month: number) {
   return request<{ entries: LedgerRow[] }>(`/charges/month?year=${year}&month=${month}`)
 }
+
+export function getAllCharges() {
+  return request<{ entries: LedgerRow[] }>(`/charges/all`)
+}

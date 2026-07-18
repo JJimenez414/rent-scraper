@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { ChargesTrendChart } from '@/components/dashboard/charges-trend-chart'
 import { RecentChargesTable } from '@/components/dashboard/recent-charges-table'
-import { getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
+import { getAllCharges, getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
 import { buildTrendFromMonths, recentMonths, type ChartCategory, type ChartRow } from '@/lib/trend'
 
 const MONTHS = [
@@ -47,6 +47,7 @@ function App() {
   const [trendLoading, setTrendLoading] = useState(false)
   const [trendError, setTrendError] = useState<string>()
 
+  // load based on specified month
   const loadEntries = useCallback(async (y: number, m: number) => {
     setEntriesLoading(true)
     setEntriesError(undefined)
@@ -60,18 +61,28 @@ function App() {
     }
   }, [])
 
+    // load everything when the user hits trigger
   const loadTrend = useCallback(async () => {
     setTrendLoading(true)
     setTrendError(undefined)
     try {
+      // One fetch for everything instead of 12 separate /charges/month
+      // calls — bucket entries into months client-side.
+      const { entries } = await getAllCharges()
       const months = recentMonths(12)
-      // Fetched sequentially (not Promise.all) so we don't outrun the
-      // backend's connection pool (maxconn=10) with 12 concurrent requests.
-      const results = []
-      for (const { year, month } of months) {
-        const { entries } = await getMonthCharges(year, month)
-        results.push({ year, month, entries })
-      }
+      const results = months.map(({ year, month }) => ({
+        year,
+        month,
+        entries: entries.filter((e) => {
+          // entry_date is a bare "YYYY-MM-DD" (no time). new Date(...) on a
+          // date-only string parses as UTC midnight, but getFullYear()/
+          // getMonth() read local time — in timezones behind UTC that shifts
+          // dates near midnight into the wrong month. Parse the string
+          // directly instead of going through Date at all.
+          const [y, m] = e.entry_date.split('-').map(Number)
+          return y === year && m === month
+        }),
+      }))
       const { data, categories } = buildTrendFromMonths(results)
       setTrendData(data)
       setTrendCategories(categories)
@@ -84,7 +95,7 @@ function App() {
 
   useEffect(() => {
     loadEntries(year, month)
-  }, [loadEntries, year, month])
+  }, [year, month])
 
   useEffect(() => {
     loadTrend()
@@ -96,7 +107,7 @@ function App() {
     try {
       const res = await triggerScrape()
       setTriggerMessage({ kind: 'success', text: res.status })
-      await Promise.all([loadEntries(year, month), loadTrend()])
+      await Promise.all([loadTrend()])
     } catch (err) {
       setTriggerMessage({
         kind: 'error',
