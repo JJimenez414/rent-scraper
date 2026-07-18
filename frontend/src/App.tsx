@@ -41,7 +41,8 @@ function App() {
 
   const [isTriggering, setIsTriggering] = useState(false)
   const [triggerMessage, setTriggerMessage] = useState<{ kind: 'success' | 'error'; text: string }>()
-
+  const [triggerTimestamp, setTriggerTimestamp] = useState("")
+  
   const [trendData, setTrendData] = useState<ChartRow[]>([])
   const [trendCategories, setTrendCategories] = useState<ChartCategory[]>([])
   const [trendLoading, setTrendLoading] = useState(false)
@@ -93,9 +94,12 @@ function App() {
   async function handleTrigger() {
     setIsTriggering(true)
     setTriggerMessage(undefined)
+    var formattedTimestamp = ""
     try {
       const res = await triggerScrape()
       setTriggerMessage({ kind: 'success', text: res.status })
+      formattedTimestamp = formatLastRun(res.timestamp)
+      console.log(res.timestamp)
       await Promise.all([loadEntries(year, month), loadTrend()])
     } catch (err) {
       setTriggerMessage({
@@ -103,8 +107,19 @@ function App() {
         text: err instanceof Error ? err.message : 'Scrape failed.',
       })
     } finally {
+      setTriggerTimestamp(formattedTimestamp)
       setIsTriggering(false)
     }
+  }
+
+  function formatLastRun(iso: string) {
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -115,7 +130,24 @@ function App() {
             <h1 className="text-lg font-semibold text-foreground">AMLI Lakeline · Rent Dashboard</h1>
             <p className="text-sm text-muted-foreground">Charges tracked from the resident portal ledger</p>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-row items-center gap-3">
+            <div className='flex flex-col items-end gap-1'>
+              <span className='text-xs text-[#006300]'>
+                {triggerTimestamp}
+              </span>
+
+              {triggerMessage && (
+                <span
+                  className={
+                    triggerMessage.kind === 'success'
+                      ? 'text-xs text-[#006300] dark:text-[#0ca30c]'
+                      : 'text-xs text-[#d03b3b]'
+                  }
+                >
+                  {triggerMessage.text}
+                </span>
+              )}
+            </div>
             <Button
               onClick={handleTrigger}
               disabled={isTriggering}
@@ -129,17 +161,6 @@ function App() {
               )}
               {isTriggering ? 'Running scraper…' : 'Run scraper'}
             </Button>
-            {triggerMessage && (
-              <span
-                className={
-                  triggerMessage.kind === 'success'
-                    ? 'text-xs text-[#006300] dark:text-[#0ca30c]'
-                    : 'text-xs text-[#d03b3b]'
-                }
-              >
-                {triggerMessage.text}
-              </span>
-            )}
           </div>
         </div>
       </header>
