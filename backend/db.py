@@ -107,3 +107,27 @@ def db_get_all_charges():
     finally:
         logger.info("Exiting db_get_all_charges.")
         return_db_connection(conn)
+        
+def db_get_last_run():
+    logger.info("Entering db_get_last_run.")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM scrape_runs ORDER BY ran_at DESC LIMIT 1;")
+        run = cur.fetchone()
+        return (run['ran_at'], run['error_message'])
+    finally: 
+        logger.info("Exiting db_get_last_run.")
+        return_db_connection(conn)
+
+def db_insert_run(timestamp, status, error_message, num_rows):
+    logger.info("Entering db_insert_run.")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("INSERT INTO scrape_runs (ran_at, status, rows_scraped, error_message) VALUES (%s, %s, %s, %s);", (timestamp, status, num_rows, error_message))
+        conn.commit()
+    finally: 
+        logger.info("Exiting get_db_connection.")
+        return_db_connection(conn)
+		

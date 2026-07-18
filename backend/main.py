@@ -24,6 +24,7 @@ def trigger():
 
     logger.info("POST /trigger: Entering endpoint")
 
+    start_time_stamp = datetime.now().replace(microsecond=0)
     # Run script, parse results, insert into db
     results = amli_scraper()
 
