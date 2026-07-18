@@ -63,7 +63,9 @@ def get_month_charges():
 # get las run data
 @app.get("/run")
 def get_last_run():
+    logger.info("GET /run: Entering endpoint")
     timestamp, message = db_get_last_run()
+    logger.info("GET /run: Exiting endpoint")
     return {"status": message, "timestamp": timestamp}
 
 
