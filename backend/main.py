@@ -58,6 +58,14 @@ def get_month_charges():
     logger.info("GET /charges/all: Exiting endpoint")
     return {"entries": result_db}
 
+# get las run data
+@app.get("/run")
+def get_last_run():
+    logger.info("GET /run: Entering endpoint")
+    timestamp, message = db_get_last_run()
+    logger.info("GET /run: Exiting endpoint")
+    return {"status": message, "timestamp": timestamp}
+
 
 
 if __name__ == "__main__":
