@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { ChargesTrendChart } from '@/components/dashboard/charges-trend-chart'
 import { RecentChargesTable } from '@/components/dashboard/recent-charges-table'
-import { getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
+import { getLastRun, getAllCharges, getMonthCharges, triggerScrape, type LedgerRow } from '@/lib/api'
 import { buildTrendFromMonths, recentMonths, type ChartCategory, type ChartRow } from '@/lib/trend'
 
 const MONTHS = [
@@ -41,12 +41,15 @@ function App() {
 
   const [isTriggering, setIsTriggering] = useState(false)
   const [triggerMessage, setTriggerMessage] = useState<{ kind: 'success' | 'error'; text: string }>()
+  const [triggerTimestamp, setTriggerTimestamp] = useState("")
+
 
   const [trendData, setTrendData] = useState<ChartRow[]>([])
   const [trendCategories, setTrendCategories] = useState<ChartCategory[]>([])
   const [trendLoading, setTrendLoading] = useState(false)
   const [trendError, setTrendError] = useState<string>()
 
+  // load based on specified month
   const loadEntries = useCallback(async (y: number, m: number) => {
     setEntriesLoading(true)
     setEntriesError(undefined)
@@ -60,18 +63,28 @@ function App() {
     }
   }, [])
 
+    // load everything when the user hits trigger
   const loadTrend = useCallback(async () => {
     setTrendLoading(true)
     setTrendError(undefined)
     try {
+      // One fetch for everything instead of 12 separate /charges/month
+      // calls — bucket entries into months client-side.
+      const { entries } = await getAllCharges()
       const months = recentMonths(12)
-      // Fetched sequentially (not Promise.all) so we don't outrun the
-      // backend's connection pool (maxconn=10) with 12 concurrent requests.
-      const results = []
-      for (const { year, month } of months) {
-        const { entries } = await getMonthCharges(year, month)
-        results.push({ year, month, entries })
-      }
+      const results = months.map(({ year, month }) => ({
+        year,
+        month,
+        entries: entries.filter((e) => {
+          // entry_date is a bare "YYYY-MM-DD" (no time). new Date(...) on a
+          // date-only string parses as UTC midnight, but getFullYear()/
+          // getMonth() read local time — in timezones behind UTC that shifts
+          // dates near midnight into the wrong month. Parse the string
+          // directly instead of going through Date at all.
+          const [y, m] = e.entry_date.split('-').map(Number)
+          return y === year && m === month
+        }),
+      }))
       const { data, categories } = buildTrendFromMonths(results)
       setTrendData(data)
       setTrendCategories(categories)
@@ -82,40 +95,96 @@ function App() {
     }
   }, [])
 
+  const loadLastRun = useCallback(async () => {
+    try {
+      const { status, timestamp } = await getLastRun()
+      setTriggerTimestamp(timestamp ? formatLastRun(timestamp) : 'Never run yet')
+      // Backend's /run currently returns the scrape_runs.error_message column
+      // under the "status" key, which holds the success message on success
+      // too (not null) — so an exact match is the only signal available
+      // without a backend change. Fragile: breaks if that message text
+      // ever changes on the backend.
+      setTriggerMessage(
+        status === 'Data Successfully scraped and stored.'
+          ? { kind: 'success', text: 'Last run succeeded' }
+          : { kind: 'error', text: status ?? 'Unknown' },
+      )
+    } catch {
+      // last-run status is a nice-to-have; a failed fetch here shouldn't
+      // block the rest of the dashboard from loading
+    }
+  }, [])
+
+
   useEffect(() => {
     loadEntries(year, month)
-  }, [loadEntries, year, month])
+  }, [year, month])
 
   useEffect(() => {
     loadTrend()
   }, [loadTrend])
 
+  useEffect(() => {
+    loadLastRun()
+  }, [loadLastRun])
+
   async function handleTrigger() {
     setIsTriggering(true)
     setTriggerMessage(undefined)
+    setTriggerTimestamp("")
+    var formattedTimestamp = ""
     try {
       const res = await triggerScrape()
       setTriggerMessage({ kind: 'success', text: res.status })
-      await Promise.all([loadEntries(year, month), loadTrend()])
+      formattedTimestamp = formatLastRun(res.timestamp)
+      await Promise.all([loadTrend()])
     } catch (err) {
       setTriggerMessage({
         kind: 'error',
         text: err instanceof Error ? err.message : 'Scrape failed.',
       })
     } finally {
+      setTriggerTimestamp(formattedTimestamp)
       setIsTriggering(false)
     }
   }
 
+  function formatLastRun(iso: string) {
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
   return (
     <div className="min-h-svh bg-muted/30">
-      <header className="border-b border-border bg-card">
+       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <div>
             <h1 className="text-lg font-semibold text-foreground">AMLI Lakeline · Rent Dashboard</h1>
             <p className="text-sm text-muted-foreground">Charges tracked from the resident portal ledger</p>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-row items-center gap-3">
+            <div className='flex flex-col items-end gap-1'>
+              <span className='text-xs text-[#006300]'>
+                {triggerTimestamp}
+              </span>
+
+              {triggerMessage && (
+                <span
+                  className={
+                    triggerMessage.kind === 'success'
+                      ? 'text-xs text-[#006300] dark:text-[#0ca30c]'
+                      : 'text-xs text-[#d03b3b]'
+                  }
+                >
+                  {triggerMessage.text}
+                </span>
+              )}
+            </div>
             <Button
               onClick={handleTrigger}
               disabled={isTriggering}
@@ -129,17 +198,6 @@ function App() {
               )}
               {isTriggering ? 'Running scraper…' : 'Run scraper'}
             </Button>
-            {triggerMessage && (
-              <span
-                className={
-                  triggerMessage.kind === 'success'
-                    ? 'text-xs text-[#006300] dark:text-[#0ca30c]'
-                    : 'text-xs text-[#d03b3b]'
-                }
-              >
-                {triggerMessage.text}
-              </span>
-            )}
           </div>
         </div>
       </header>

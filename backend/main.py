@@ -2,8 +2,9 @@ from fastapi import FastAPI, APIRouter, Request, HTTPException, status, Depends,
 from fastapi.middleware.cors import CORSMiddleware
 from scraper.scrape import amli_scraper
 from util.scraper_util import parse_ledger
-from db import db_insert_charges, db_get_month_charges
+from db import db_insert_charges, db_get_month_charges, db_insert_run, db_get_last_run, db_get_all_charges
 from util.logger import get_logger 
+from datetime import datetime
 
 import uvicorn
 
@@ -24,8 +25,9 @@ def trigger():
 
     logger.info("POST /trigger: Entering endpoint")
 
+    start_time_stamp = datetime.now().replace(microsecond=0)
     # Run script, parse results, insert into db
-    results = amli_scraper()
+    results, num_rows = amli_scraper()
 
     if results is None and len(results) <= 0:
          logger.warning("Results is none/empty")
@@ -36,15 +38,35 @@ def trigger():
 
     db_insert_charges(data)
 
+    db_insert_run(start_time_stamp, 'success', "Data Successfully scraped and stored.", num_rows)
     logger.info("POST /trigger: Exiting endpoint")
 
-    return {"status": "Data Successfully scraped and stored."}
+    return {"status": "Data Successfully scraped and stored.", "timestamp": start_time_stamp}
 
 
 # find charges for a specific month
 @app.get("/charges/month")
 def get_month_charges(month: int, year: int):
-    return {"entries": db_get_month_charges(year, month)}
+    logger.info("GET /charges/month: Entering endpoint")
+    result_db = db_get_month_charges(year, month)
+    logger.info("GET /charges/month: Exiting endpoint")
+    return {"entries": result_db}
+
+# find charges for a specific month
+@app.get("/charges/all")
+def get_month_charges():
+    logger.info("GET /charges/all: Entering endpoint")
+    result_db = db_get_all_charges()
+    logger.info("GET /charges/all: Exiting endpoint")
+    return {"entries": result_db}
+
+# get las run data
+@app.get("/run")
+def get_last_run():
+    logger.info("GET /run: Entering endpoint")
+    timestamp, message = db_get_last_run()
+    logger.info("GET /run: Exiting endpoint")
+    return {"status": message, "timestamp": timestamp}
 
 
 
