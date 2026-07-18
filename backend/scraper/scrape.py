@@ -77,5 +77,5 @@ def amli_scraper():
 
         logger.info("Scraper finished")
         
-        return (payments, len(rows))
+        return payments
 
