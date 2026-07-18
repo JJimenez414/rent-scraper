@@ -21,9 +21,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function triggerScrape() {
-  return request<{ status: string }>('/trigger', { method: 'POST' })
+  return request<{ status: string, timestamp: string }>('/trigger', { method: 'POST' })
 }
 
 export function getMonthCharges(year: number, month: number) {
   return request<{ entries: LedgerRow[] }>(`/charges/month?year=${year}&month=${month}`)
+}
+
+// status is null when the last run succeeded (backend returns the run's
+// error_message column here — None on success, the error text on failure).
+export function getLastRun() {
+  return request<{ status: string | null, timestamp: string }>(`/run`)
 }
