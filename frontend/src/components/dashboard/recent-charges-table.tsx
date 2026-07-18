@@ -18,7 +18,15 @@ function titleCase(s: string): string {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  // entry_date is a bare "YYYY-MM-DD" (no time), which Date parses as UTC
+  // midnight — force display back in UTC too, or local timezones behind UTC
+  // show the day before the actual date.
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
 }
 
 const typeStyles: Record<LedgerRow['entry_type'], string> = {
