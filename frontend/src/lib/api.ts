@@ -30,6 +30,7 @@ export function getMonthCharges(year: number, month: number) {
 
 export function getAllCharges() {
   return request<{ entries: LedgerRow[] }>(`/charges/all`)
+}
 // status is null when the last run succeeded (backend returns the run's
 // error_message column here — None on success, the error text on failure).
 export function getLastRun() {
