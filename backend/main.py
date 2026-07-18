@@ -2,8 +2,9 @@ from fastapi import FastAPI, APIRouter, Request, HTTPException, status, Depends,
 from fastapi.middleware.cors import CORSMiddleware
 from scraper.scrape import amli_scraper
 from util.scraper_util import parse_ledger
-from db import db_insert_charges, db_get_month_charges, db_get_all_charges
+from db import db_insert_charges, db_get_month_charges, db_insert_run, db_get_last_run, db_get_all_charges
 from util.logger import get_logger 
+from datetime import datetime
 
 import uvicorn
 
@@ -26,7 +27,7 @@ def trigger():
 
     start_time_stamp = datetime.now().replace(microsecond=0)
     # Run script, parse results, insert into db
-    results = amli_scraper()
+    results, num_rows = amli_scraper()
 
     if results is None and len(results) <= 0:
          logger.warning("Results is none/empty")
@@ -37,9 +38,10 @@ def trigger():
 
     db_insert_charges(data)
 
+    db_insert_run(start_time_stamp, 'success', "Data Successfully scraped and stored.", num_rows)
     logger.info("POST /trigger: Exiting endpoint")
 
-    return {"status": "Data Successfully scraped and stored."}
+    return {"status": "Data Successfully scraped and stored.", "timestamp": start_time_stamp}
 
 
 # find charges for a specific month

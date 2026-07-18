@@ -21,7 +21,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function triggerScrape() {
-  return request<{ status: string }>('/trigger', { method: 'POST' })
+  return request<{ status: string, timestamp: string }>('/trigger', { method: 'POST' })
 }
 
 export function getMonthCharges(year: number, month: number) {
