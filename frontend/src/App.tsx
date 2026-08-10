@@ -38,6 +38,8 @@ function App() {
   const [entries, setEntries] = useState<LedgerRow[]>([])
   const [entriesLoading, setEntriesLoading] = useState(false)
   const [entriesError, setEntriesError] = useState<string>()
+  const [monthPaid, setMonthPaid] = useState(false)
+  const [monthPaidDate, setMonthPaidDate] = useState<string | null>(null)
 
   const [isTriggering, setIsTriggering] = useState(false)
   const [triggerMessage, setTriggerMessage] = useState<{ kind: 'success' | 'error'; text: string }>()
@@ -54,8 +56,10 @@ function App() {
     setEntriesLoading(true)
     setEntriesError(undefined)
     try {
-      const { entries } = await getMonthCharges(y, m)
+      const { entries, paid, paid_date } = await getMonthCharges(y, m)
       setEntries(entries)
+      setMonthPaid(paid)
+      setMonthPaidDate(paid_date)
     } catch (err) {
       setEntriesError(err instanceof Error ? err.message : 'Failed to load charges.')
     } finally {
@@ -233,7 +237,13 @@ function App() {
           </Select>
         </div>
 
-        <RecentChargesTable entries={entries} isLoading={entriesLoading} error={entriesError} />
+        <RecentChargesTable
+          entries={entries}
+          isLoading={entriesLoading}
+          error={entriesError}
+          paid={monthPaid}
+          paidDate={monthPaidDate}
+        />
       </main>
     </div>
   )

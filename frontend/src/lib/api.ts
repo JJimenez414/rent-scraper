@@ -24,8 +24,15 @@ export function triggerScrape() {
   return request<{ status: string, timestamp: string }>('/trigger', { method: 'POST' })
 }
 
+export type MonthChargesResponse = {
+  entries: LedgerRow[]
+  total_charges: number
+  paid: boolean
+  paid_date: string | null
+}
+
 export function getMonthCharges(year: number, month: number) {
-  return request<{ entries: LedgerRow[] }>(`/charges/month?year=${year}&month=${month}`)
+  return request<MonthChargesResponse>(`/charges/month?year=${year}&month=${month}`)
 }
 
 export function getAllCharges() {

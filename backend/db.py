@@ -84,7 +84,45 @@ def db_get_month_charges(year, month):
             """,
             (start_date, end_date),
         )
-        return cur.fetchall()
+
+        entry_result = cur.fetchall()
+
+        # Total of this month's charges (rent + utilities), excludes payments.
+        cur.execute(
+            """SELECT COALESCE(SUM(amount), 0) AS total
+             FROM ledger_entries
+             WHERE entry_type = 'charge' AND entry_date >= %s AND entry_date < %s;
+            """,
+            (start_date, end_date),
+        )
+        total_charges = cur.fetchone()["total"]
+
+        # Charges are prepaid — the payment covering this month's charges is
+        # dated in the prior month (e.g. Jul charges are settled by a
+        # late-June payment). Grab the most recent payment before this
+        # month started and compare it to this month's total.
+        cur.execute(
+            """SELECT entry_date, amount
+             FROM ledger_entries
+             WHERE entry_type = 'payment' AND entry_date < %s
+             ORDER BY entry_date DESC
+             LIMIT 1;
+            """,
+            (start_date,),
+        )
+        last_payment = cur.fetchone()
+
+        is_paid = (
+            last_payment is not None
+            and abs(float(last_payment["amount"]) - float(total_charges)) < 0.01
+        )
+
+        return {
+            "entries": entry_result,
+            "total_charges": float(total_charges),
+            "paid": is_paid,
+            "paid_date": last_payment["entry_date"] if is_paid else None,
+        }
     finally:
         logger.info("Exiting db_get_month_charges.")
         return_db_connection(conn)

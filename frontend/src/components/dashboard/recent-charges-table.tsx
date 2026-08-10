@@ -38,16 +38,34 @@ export function RecentChargesTable({
   entries,
   isLoading,
   error,
+  paid,
+  paidDate,
 }: {
   entries: LedgerRow[]
   isLoading?: boolean
   error?: string
+  paid?: boolean
+  paidDate?: string | null
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Charges</CardTitle>
-        <CardDescription>Ledger entries for the selected month</CardDescription>
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle>Charges</CardTitle>
+          <CardDescription>Ledger entries for the selected month</CardDescription>
+        </div>
+        {!isLoading && !error && (
+          <Badge
+            variant="outline"
+            className={
+              paid
+                ? 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+                : 'bg-input/20 text-foreground border-transparent'
+            }
+          >
+            {paid && paidDate ? `Paid – ${formatDate(paidDate)}` : 'Not Paid'}
+          </Badge>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
