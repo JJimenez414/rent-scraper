@@ -9,6 +9,9 @@ export type LedgerRow = {
   amount: number
   fee: number | null
   balance: number
+  // amount minus the same category's charge from the previous month; null
+  // when there's no prior-month charge in that category to compare against.
+  previous_month_amount: number | null
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

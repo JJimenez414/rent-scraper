@@ -76,11 +76,30 @@ def db_get_month_charges(year, month):
         logger.info("Getting data for the following month range: %s -> %s", start_date, end_date)
 
         cur.execute(
-            """SELECT ledger_entries.id, ledger_entries.entry_date, ledger_entries.entry_type, charge_categories.name AS category, ledger_entries.payer, ledger_entries.amount, ledger_entries.fee, ledger_entries.balance
-             FROM ledger_entries
-             JOIN charge_categories ON charge_categories.id = ledger_entries.category_id
-             WHERE entry_date >= %s AND entry_date < %s
-             ORDER BY ledger_entries.entry_date DESC;
+            """SELECT
+                ledger_entries.id,
+                ledger_entries.entry_date,
+                ledger_entries.entry_type,
+                charge_categories.name AS category,
+                ledger_entries.payer,
+                ledger_entries.amount,
+                ledger_entries.fee,
+                ledger_entries.balance,
+                ledger_entries.amount -
+                (
+                    SELECT prev.amount
+                    FROM ledger_entries prev
+                    WHERE prev.category_id = ledger_entries.category_id
+                    AND prev.entry_type = 'charge'
+                    AND prev.entry_date >= (date_trunc('month', ledger_entries.entry_date) - INTERVAL '1 month')
+                    AND prev.entry_date <  date_trunc('month', ledger_entries.entry_date)
+                    ORDER BY prev.entry_date DESC
+                    LIMIT 1
+                ) AS previous_month_amount
+            FROM ledger_entries
+            JOIN charge_categories ON charge_categories.id = ledger_entries.category_id
+            WHERE entry_date >= %s AND entry_date < %s
+            ORDER BY ledger_entries.entry_date DESC;
             """,
             (start_date, end_date),
         )
