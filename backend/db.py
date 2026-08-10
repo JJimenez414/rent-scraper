@@ -102,7 +102,15 @@ def db_get_month_charges(year, month):
         # late-June payment). Grab the most recent payment before this
         # month started and compare it to this month's total.
         cur.execute(
-            """SELECT entry_date, amount
+            """SELECT entry_date, amount, amount - (
+                SELECT prev.amount
+                FROM ledger_entries prev
+                WHERE entry_date >= (date_trunc('month', ledger_entries.entry_date) - INTERVAL '1 month')
+                AND prev.entry_date <  date_trunc('month', ledger_entries.entry_date)
+                AND entry_type = 'payment'
+                ORDER BY entry_date DESC
+                LIMIT 1
+            ) AS prev_amount
              FROM ledger_entries
              WHERE entry_type = 'payment' AND entry_date < %s
              ORDER BY entry_date DESC
@@ -122,6 +130,9 @@ def db_get_month_charges(year, month):
             "total_charges": float(total_charges),
             "paid": is_paid,
             "paid_date": last_payment["entry_date"] if is_paid else None,
+            "payment_change": float(last_payment["prev_amount"])
+            if last_payment and last_payment["prev_amount"] is not None
+            else None,
         }
     finally:
         logger.info("Exiting db_get_month_charges.")

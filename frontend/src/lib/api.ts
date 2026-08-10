@@ -29,6 +29,9 @@ export type MonthChargesResponse = {
   total_charges: number
   paid: boolean
   paid_date: string | null
+  // most recent payment's amount minus the payment before it, in the same
+  // category; null when there's no prior payment to compare against.
+  payment_change: number | null
 }
 
 export function getMonthCharges(year: number, month: number) {

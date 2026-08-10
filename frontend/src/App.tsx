@@ -40,6 +40,7 @@ function App() {
   const [entriesError, setEntriesError] = useState<string>()
   const [monthPaid, setMonthPaid] = useState(false)
   const [monthPaidDate, setMonthPaidDate] = useState<string | null>(null)
+  const [paymentChange, setPaymentChange] = useState<number | null>(null)
 
   const [isTriggering, setIsTriggering] = useState(false)
   const [triggerMessage, setTriggerMessage] = useState<{ kind: 'success' | 'error'; text: string }>()
@@ -56,10 +57,11 @@ function App() {
     setEntriesLoading(true)
     setEntriesError(undefined)
     try {
-      const { entries, paid, paid_date } = await getMonthCharges(y, m)
+      const { entries, paid, paid_date, payment_change } = await getMonthCharges(y, m)
       setEntries(entries)
       setMonthPaid(paid)
       setMonthPaidDate(paid_date)
+      setPaymentChange(payment_change)
     } catch (err) {
       setEntriesError(err instanceof Error ? err.message : 'Failed to load charges.')
     } finally {
@@ -243,6 +245,7 @@ function App() {
           error={entriesError}
           paid={monthPaid}
           paidDate={monthPaidDate}
+          paymentChange={paymentChange}
         />
       </main>
     </div>
