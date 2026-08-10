@@ -76,15 +76,83 @@ def db_get_month_charges(year, month):
         logger.info("Getting data for the following month range: %s -> %s", start_date, end_date)
 
         cur.execute(
-            """SELECT ledger_entries.id, ledger_entries.entry_date, ledger_entries.entry_type, charge_categories.name AS category, ledger_entries.payer, ledger_entries.amount, ledger_entries.fee, ledger_entries.balance
-             FROM ledger_entries
-             JOIN charge_categories ON charge_categories.id = ledger_entries.category_id
-             WHERE entry_date >= %s AND entry_date < %s
-             ORDER BY ledger_entries.entry_date DESC;
+            """SELECT
+                ledger_entries.id,
+                ledger_entries.entry_date,
+                ledger_entries.entry_type,
+                charge_categories.name AS category,
+                ledger_entries.payer,
+                ledger_entries.amount,
+                ledger_entries.fee,
+                ledger_entries.balance,
+                ledger_entries.amount -
+                (
+                    SELECT prev.amount
+                    FROM ledger_entries prev
+                    WHERE prev.category_id = ledger_entries.category_id
+                    AND prev.entry_type = 'charge'
+                    AND prev.entry_date >= (date_trunc('month', ledger_entries.entry_date) - INTERVAL '1 month')
+                    AND prev.entry_date <  date_trunc('month', ledger_entries.entry_date)
+                    ORDER BY prev.entry_date DESC
+                    LIMIT 1
+                ) AS previous_month_amount
+            FROM ledger_entries
+            JOIN charge_categories ON charge_categories.id = ledger_entries.category_id
+            WHERE entry_date >= %s AND entry_date < %s
+            ORDER BY ledger_entries.entry_date DESC;
             """,
             (start_date, end_date),
         )
-        return cur.fetchall()
+
+        entry_result = cur.fetchall()
+
+        # Total of this month's charges (rent + utilities), excludes payments.
+        cur.execute(
+            """SELECT COALESCE(SUM(amount), 0) AS total
+             FROM ledger_entries
+             WHERE entry_type = 'charge' AND entry_date >= %s AND entry_date < %s;
+            """,
+            (start_date, end_date),
+        )
+        total_charges = cur.fetchone()["total"]
+
+        # Charges are prepaid — the payment covering this month's charges is
+        # dated in the prior month (e.g. Jul charges are settled by a
+        # late-June payment). Grab the most recent payment before this
+        # month started and compare it to this month's total.
+        cur.execute(
+            """SELECT entry_date, amount, amount - (
+                SELECT prev.amount
+                FROM ledger_entries prev
+                WHERE entry_date >= (date_trunc('month', ledger_entries.entry_date) - INTERVAL '1 month')
+                AND prev.entry_date <  date_trunc('month', ledger_entries.entry_date)
+                AND entry_type = 'payment'
+                ORDER BY entry_date DESC
+                LIMIT 1
+            ) AS prev_amount
+             FROM ledger_entries
+             WHERE entry_type = 'payment' AND entry_date < %s
+             ORDER BY entry_date DESC
+             LIMIT 1;
+            """,
+            (start_date,),
+        )
+        last_payment = cur.fetchone()
+
+        is_paid = (
+            last_payment is not None
+            and abs(float(last_payment["amount"]) - float(total_charges)) < 0.01
+        )
+
+        return {
+            "entries": entry_result,
+            "total_charges": float(total_charges),
+            "paid": is_paid,
+            "paid_date": last_payment["entry_date"] if is_paid else None,
+            "payment_change": float(last_payment["prev_amount"])
+            if last_payment and last_payment["prev_amount"] is not None
+            else None,
+        }
     finally:
         logger.info("Exiting db_get_month_charges.")
         return_db_connection(conn)

@@ -34,20 +34,95 @@ const typeStyles: Record<LedgerRow['entry_type'], string> = {
   payment: 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent',
 }
 
+function PaymentChangeBadge({ change }: { change: number | null | undefined }) {
+  if (change === null || change === undefined) return null
+  if (change === 0) {
+    return (
+      <Badge variant="outline" className="bg-input/20 text-foreground border-transparent">
+        Payment unchanged
+      </Badge>
+    )
+  }
+  const isIncrease = change > 0
+  return (
+    <Badge
+      variant="outline"
+      className={
+        isIncrease
+          ? 'bg-[#d03b3b]/10 text-[#d03b3b] border-transparent'
+          : 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+      }
+    >
+      Payment {isIncrease ? '+' : '−'}
+      {currency(Math.abs(change))}
+    </Badge>
+  )
+}
+
+function ChangeBadge({ change }: { change: number | null }) {
+  if (change === null) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+  if (change === 0) {
+    return (
+      <Badge variant="outline" className="bg-input/20 text-foreground border-transparent">
+        No change
+      </Badge>
+    )
+  }
+  const isIncrease = change > 0
+  return (
+    <Badge
+      variant="outline"
+      className={
+        isIncrease
+          ? 'bg-[#d03b3b]/10 text-[#d03b3b] border-transparent'
+          : 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+      }
+    >
+      {isIncrease ? '+' : '−'}
+      {currency(Math.abs(change))}
+    </Badge>
+  )
+}
+
 export function RecentChargesTable({
   entries,
   isLoading,
   error,
+  paid,
+  paidDate,
+  paymentChange,
 }: {
   entries: LedgerRow[]
   isLoading?: boolean
   error?: string
+  paid?: boolean
+  paidDate?: string | null
+  paymentChange?: number | null
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Charges</CardTitle>
-        <CardDescription>Ledger entries for the selected month</CardDescription>
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle>Charges</CardTitle>
+          <CardDescription>Ledger entries for the selected month</CardDescription>
+        </div>
+        {!isLoading && !error && (
+          <div className="flex items-center gap-2">
+            <PaymentChangeBadge change={paymentChange} />
+            <Badge
+              variant="outline"
+              className={
+                paid
+                  ? 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+                  : 'bg-input/20 text-foreground border-transparent'
+              }
+            >
+              {paid && paidDate ? `Paid – ${formatDate(paidDate)}` : 'Not Paid'}
+            </Badge>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -66,6 +141,7 @@ export function RecentChargesTable({
                 <TableHead>Category</TableHead>
                 <TableHead>Payer</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">vs Last Month</TableHead>
                 <TableHead className="text-right">Type</TableHead>
               </TableRow>
             </TableHeader>
@@ -79,6 +155,9 @@ export function RecentChargesTable({
                   <TableCell className="text-muted-foreground">{entry.payer}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {currency(entry.amount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ChangeBadge change={entry.entry_type === 'charge' ? entry.previous_month_amount : null} />
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="outline" className={typeStyles[entry.entry_type]}>
