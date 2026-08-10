@@ -59,6 +59,33 @@ function PaymentChangeBadge({ change }: { change: number | null | undefined }) {
   )
 }
 
+function ChangeBadge({ change }: { change: number | null }) {
+  if (change === null) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+  if (change === 0) {
+    return (
+      <Badge variant="outline" className="bg-input/20 text-foreground border-transparent">
+        No change
+      </Badge>
+    )
+  }
+  const isIncrease = change > 0
+  return (
+    <Badge
+      variant="outline"
+      className={
+        isIncrease
+          ? 'bg-[#d03b3b]/10 text-[#d03b3b] border-transparent'
+          : 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+      }
+    >
+      {isIncrease ? '+' : '−'}
+      {currency(Math.abs(change))}
+    </Badge>
+  )
+}
+
 export function RecentChargesTable({
   entries,
   isLoading,
@@ -114,6 +141,7 @@ export function RecentChargesTable({
                 <TableHead>Category</TableHead>
                 <TableHead>Payer</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">vs Last Month</TableHead>
                 <TableHead className="text-right">Type</TableHead>
               </TableRow>
             </TableHeader>
@@ -127,6 +155,9 @@ export function RecentChargesTable({
                   <TableCell className="text-muted-foreground">{entry.payer}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {currency(entry.amount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ChangeBadge change={entry.entry_type === 'charge' ? entry.previous_month_amount : null} />
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="outline" className={typeStyles[entry.entry_type]}>
