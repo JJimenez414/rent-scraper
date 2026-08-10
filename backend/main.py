@@ -50,7 +50,7 @@ def get_month_charges(month: int, year: int):
     logger.info("GET /charges/month: Entering endpoint")
     result_db = db_get_month_charges(year, month)
     logger.info("GET /charges/month: Exiting endpoint")
-    return {"entries": result_db}
+    return result_db
 
 # find charges for a specific month
 @app.get("/charges/all")

@@ -34,20 +34,68 @@ const typeStyles: Record<LedgerRow['entry_type'], string> = {
   payment: 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent',
 }
 
+function PaymentChangeBadge({ change }: { change: number | null | undefined }) {
+  if (change === null || change === undefined) return null
+  if (change === 0) {
+    return (
+      <Badge variant="outline" className="bg-input/20 text-foreground border-transparent">
+        Payment unchanged
+      </Badge>
+    )
+  }
+  const isIncrease = change > 0
+  return (
+    <Badge
+      variant="outline"
+      className={
+        isIncrease
+          ? 'bg-[#d03b3b]/10 text-[#d03b3b] border-transparent'
+          : 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+      }
+    >
+      Payment {isIncrease ? '+' : '−'}
+      {currency(Math.abs(change))}
+    </Badge>
+  )
+}
+
 export function RecentChargesTable({
   entries,
   isLoading,
   error,
+  paid,
+  paidDate,
+  paymentChange,
 }: {
   entries: LedgerRow[]
   isLoading?: boolean
   error?: string
+  paid?: boolean
+  paidDate?: string | null
+  paymentChange?: number | null
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Charges</CardTitle>
-        <CardDescription>Ledger entries for the selected month</CardDescription>
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle>Charges</CardTitle>
+          <CardDescription>Ledger entries for the selected month</CardDescription>
+        </div>
+        {!isLoading && !error && (
+          <div className="flex items-center gap-2">
+            <PaymentChangeBadge change={paymentChange} />
+            <Badge
+              variant="outline"
+              className={
+                paid
+                  ? 'bg-[#0ca30c]/10 text-[#006300] dark:text-[#0ca30c] border-transparent'
+                  : 'bg-input/20 text-foreground border-transparent'
+              }
+            >
+              {paid && paidDate ? `Paid – ${formatDate(paidDate)}` : 'Not Paid'}
+            </Badge>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
