@@ -4,7 +4,8 @@ from scraper.scrape import amli_scraper
 from util.scraper_util import parse_ledger
 from db import db_insert_charges, db_get_month_charges, db_insert_run, db_get_last_run, db_get_all_charges
 from util.logger import get_logger 
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import uvicorn
 
@@ -24,8 +25,7 @@ app.add_middleware(
 def trigger():
 
     logger.info("POST /trigger: Entering endpoint")
-
-    start_time_stamp = datetime.now().replace(microsecond=0)
+    start_time_stamp = datetime.now(ZoneInfo("America/Chicago")).replace(microsecond=0)
     # Run script, parse results, insert into db
     results, num_rows = amli_scraper()
 
