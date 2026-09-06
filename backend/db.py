@@ -45,7 +45,7 @@ def db_insert_charges(results):
 
             formatted_category = category.replace("/", "").replace(" ", '%')
 
-            logger.info("Adding the following entry to db: %s, %s, %s, %s, %s, %s, %s", entry_date, category_type, category, payer, amount, fee, balance)
+            logger.info("Adding the following entry to db: %s, %s, %s, %s, %s, %s", entry_date, category_type, category, payer, amount, fee)
 
             cur.execute(
                  "SELECT id FROM charge_categories WHERE name LIKE %s;", (formatted_category,)
@@ -54,7 +54,7 @@ def db_insert_charges(results):
             category_id = cur.fetchone()[0]
 
             cur.execute(
-                "INSERT INTO ledger_entries (entry_date, entry_type, category_id, payer, amount, fee, balance) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (entry_date, category_id, payer, amount, balance) DO NOTHING;",
+                "INSERT INTO ledger_entries (entry_date, entry_type, category_id, payer, amount, fee, balance) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (entry_date, category_id, payer, amount) DO NOTHING;",
                 (entry_date, category_type, category_id, payer, amount, fee, balance),
             )
 
